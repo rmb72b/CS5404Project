@@ -1,0 +1,3 @@
+[submodule "DINO"]
+	path = DINO
+	url = https://github.com/IDEA-Research/DINO.git
