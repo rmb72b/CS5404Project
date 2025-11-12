@@ -1,0 +1,6 @@
+[submodule "segment-anything"]
+	path = segment-anything
+	url = https://github.com/facebookresearch/segment-anything.git
+[submodule "DINO"]
+	path = DINO
+	url = https://github.com/IDEA-Research/DINO.git
