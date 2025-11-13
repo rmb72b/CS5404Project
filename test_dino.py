@@ -10,68 +10,77 @@ from models.dino import build_dino
 
 print("CUDA available:", torch.cuda.is_available())
 
+# Custom namespace that supports 'in' operator
+class DictNamespace(types.SimpleNamespace):
+    def __contains__(self, key):
+        return hasattr(self, key)
+    
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
 # Full set of arguments for DINO
-args = types.SimpleNamespace(
+args = DictNamespace(
     # Model architecture
     arch='vit_small',
     patch_size=16,
     hidden_dim=256,
-    dropout=0.1,
+    dropout=0.0,  # CHANGED from 0.1
     nheads=8,
-    dim_feedforward=1024,
+    dim_feedforward=2048,  # CHANGED from 1024
     num_encoder_layers=6,
     num_decoder_layers=6,
     num_feature_levels=4,
     enc_layers=6,
     dec_layers=6,
     position_embedding='sine',
-    pe_temperatureH=10000,
-    pe_temperatureW=10000,
+    pe_temperatureH=20,  # CHANGED from 10000
+    pe_temperatureW=20,  # CHANGED from 10000
     pe_proj_dim=64,
     pe_norm=False,
     matcher_type = 'HungarianMatcher',
-    set_cost_class = 1,
+    set_cost_class = 2,  # CHANGED from 1
     set_cost_bbox = 5,
     set_cost_giou = 2,
 
 
     # DINO head / queries / two-stage
-    num_queries=300,
+    num_queries=900,  # CHANGED from 300
     random_refpoints_xy=False,
-    fix_refpoints_hw=False,
-    two_stage_type='no',
-    two_stage_bbox_embed_share=True,
-    two_stage_class_embed_share=True,
-    decoder_sa_type='ca_label',
+    fix_refpoints_hw=-1,  # CHANGED from False
+    two_stage_type='standard',  # CHANGED from 'no'
+    two_stage_bbox_embed_share=False,  # CHANGED from True
+    two_stage_class_embed_share=False,  # CHANGED from True
+    decoder_sa_type='sa',  # CHANGED from 'ca_label'
     num_patterns=0,
-    backbone='resnet50',
-    train_backbone=True,                 # add this
+    backbone='swin_L_384_22k',  # CHANGED from 'resnet50'
+    train_backbone=True,
     dilation=False,
-    return_interm_indices=[0,1,2,3],
+    return_interm_indices=[1, 2, 3],  # CHANGED from [0,1,2,3]
     backbone_freeze_keywords=[],
+    use_checkpoint=True,  # ADDED
 
     # Denoising (DN)
     decoder_layer_noise=False,
     unic_layers=6,
-    pre_norm=True,
+    pre_norm=False,  # CHANGED from True
     transformer_activation='relu',
     enc_n_points = 4,
     dec_n_points = 4,
     use_deformable_box_attn = False,
-    box_attn_type = "multi_scale",
+    box_attn_type = "roi_align",  # CHANGED from "multi_scale"
     add_channel_attention = False,
     add_pos_value = False,
-    two_stage_pat_embed = False,
+    two_stage_pat_embed = 0,  # CHANGED from False
     two_stage_add_query_num = 0,
     two_stage_learn_wh = False,
     two_stage_keep_all_tokens = False,
-    dec_layer_number = [300, 1, 1, 1, 1, 1],
+    dec_layer_number = None,  # CHANGED from list
     decoder_module_seq = ['sa', 'ca', 'ffn'],
-    embed_init_tgt = False,
+    embed_init_tgt = True,  # CHANGED from False
     query_dim=4,
-    use_dn=False,
+    use_dn=True,  # CHANGED from False
     dn_number=100,
-    dn_box_noise_scale=0.4,
+    dn_box_noise_scale=1.0,  # CHANGED from 0.4
     dn_label_noise_ratio=0.5,
     dn_labelbook_size=91,
     match_unstable_error=True,
@@ -89,7 +98,7 @@ args = types.SimpleNamespace(
     aux_loss=True,
     focal_alpha=0.25,
     num_select=300,
-    nms_iou_threshold=0.7,
+    nms_iou_threshold=-1,  # CHANGED from 0.7
     no_interm_box_loss=False,
     interm_loss_coef=1.0,
 
@@ -100,6 +109,10 @@ args = types.SimpleNamespace(
     frozen_weights=None,
     momentum_teacher=0.996,
     use_fp16=False,
+    
+    # Checkpoint
+    resume='checkpoint0011_4scale.pth',
+    eval=True,
 )
 
 import traceback
@@ -108,6 +121,25 @@ try:
     model, criterion, postprocessors = build_dino(args)
     print("✅ DINO model built successfully!")
     print(f"Model device: {next(model.parameters()).device}")
+    
+    # Load checkpoint
+    if os.path.exists(args.resume):
+        print(f"📥 Loading checkpoint from {args.resume}...")
+        checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False)
+        
+        if 'model' in checkpoint:
+            missing_keys, unexpected_keys = model.load_state_dict(checkpoint['model'], strict=False)
+            print("✅ Pretrained weights loaded successfully!")
+            if missing_keys:
+                print(f"   Missing keys: {len(missing_keys)}")
+            if unexpected_keys:
+                print(f"   Unexpected keys: {len(unexpected_keys)}")
+        else:
+            model.load_state_dict(checkpoint, strict=False)
+            print("✅ Pretrained weights loaded successfully!")
+    else:
+        print(f"⚠️  Checkpoint not found: {args.resume}")
+        
 except Exception as e:
     print("❌ DINO test failed:")
     traceback.print_exc()
