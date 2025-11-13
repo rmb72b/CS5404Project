@@ -17,3 +17,5 @@ Download SAM checkpoint:
 https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
 Save to: models/sam_vit_b_01ec64.pth
 
+Download checkpoint0011_4scale.pth and save it in your project directory (this will load in pretrained weights):
+https://drive.google.com/drive/folders/1qD5m1NmK0kjE5hh-G17XUX751WsEG-h_?usp=sharing
