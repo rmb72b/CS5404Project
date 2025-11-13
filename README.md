@@ -13,3 +13,7 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
+Download SAM checkpoint:
+https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+Save to: models/sam_vit_b_01ec64.pth
+
